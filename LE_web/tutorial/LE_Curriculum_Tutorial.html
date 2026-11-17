@@ -104,6 +104,27 @@ td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:va
 .nav button:disabled{opacity:.35;cursor:default}
 .nav .pos{font:600 .8rem var(--f-mono);color:var(--muted)}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:in .22s ease-out}@keyframes in{from{opacity:.6;transform:translateY(6px)}to{opacity:1;transform:none}}}
+
+/* พิมพ์/ส่งออก PDF: แสดงครบ 10 แผ่น แผ่นละหนึ่งหน้า A4 แนวนอน · ใช้สีโหมดสว่างเสมอ */
+@page{size:A4 landscape;margin:9mm}
+@media print{
+  :root,:root[data-theme="dark"]{--bg:#fff;--sheet:#fff;--ink:#2b1d24;--muted:#6c5762;--line:#f0d7e2;--rose:#a23b6a;--rose-2:#c4618d;
+    --pink:#f2b3cb;--blush:#fde8f0;--ie:#1f6fb2;--sc:#1a8a6a;--amber:#9a6a14;--bubble:#fff6fa;color-scheme:light}
+  html,body{background:#fff;padding:0;font-size:12.5px;line-height:1.55;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body::before,.tabs,.nav{display:none!important}
+  .sheet,.sheet[hidden]{display:grid!important;max-width:none;margin:0;border:0;border-radius:0;padding:0;gap:12px;
+    break-after:page;page-break-after:always;animation:none}
+  .sheet:last-of-type{break-after:auto;page-break-after:auto}
+  .num{font-size:3.2rem}.head h2{font-size:1.5rem}
+  .cols{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:16px}
+  .fig svg{min-width:0;max-height:52mm}
+  .tbl-wrap,.fig{overflow:visible}
+  table{font-size:.8rem} th,td{padding:5px 8px}
+  .stats{grid-template-columns:repeat(6,minmax(0,1fr))}
+  .stat b{font-size:1.35rem}
+  .sheet::after{content:"คู่มือสร้างหลักสูตรด้วย AI · วศ.บ. วิศวกรรมโลจิสติกส์ 2570";font:600 .7rem var(--f-mono);color:var(--muted);
+    border-top:1px solid var(--line);padding-top:4px}
+}
 </style>
 
 <header class="tabs">
