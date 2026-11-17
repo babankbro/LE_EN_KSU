@@ -1,4 +1,8 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import Alluvial from "../Alluvial.jsx";
+import { VIEWS, TYPE, PRIO_COLOR } from "../alluvialViews.js";
+import { SOURCES, NEEDS, PRIORITY, PLO_NEEDS } from "../generated/obe.js";
 import { PageHead, Section, PloChip, Warn } from "./ui.jsx";
 import { useMajor } from "../major.jsx";
 import { plosOf, ylosOf, mapRows } from "../lib.js";
@@ -10,7 +14,10 @@ export default function Obe() {
   const plos = plosOf(major);
   const ylos = ylosOf(major);
   const rows = mapRows(major);
-  const sources = [...new Set(plos.flatMap(p => p.sources || []))];
+  const [view, setView] = useState(VIEWS[0].id);
+  const cur = VIEWS.find(v => v.id === view);
+  const vd = cur.fn(major);
+  const unused = SOURCES.filter(s => !NEEDS.some(n => n.ev.includes(s.id)));
 
   return (
     <main>
@@ -20,7 +27,8 @@ export default function Obe() {
       <div className="wrap">
         <Section id="flow" title="ภาพรวม">
           <div className="statgrid">
-            <div className="statbox"><b>{sources.length}</b><span>กลุ่มผู้มีส่วนได้ส่วนเสีย/แหล่งข้อมูล</span></div>
+            <div className="statbox"><b>{SOURCES.filter(s => s.type === "direct").length} + {SOURCES.filter(s => s.type !== "direct").length}</b><span>ผู้มีส่วนได้ส่วนเสียโดยตรง + แหล่งหลักฐานอื่น</span></div>
+            <div className="statbox"><b>{NEEDS.length}</b><span>ความต้องการ (N01–N14)</span></div>
             <div className="statbox"><b>{plos.length}</b><span>PLO</span></div>
             <div className="statbox"><b>{ylos.length}</b><span>YLO</span></div>
             <div className="statbox"><b>{rows.length}</b><span>CLO ในแผนที่</span></div>
@@ -28,11 +36,68 @@ export default function Obe() {
           <div className="warnlist"><Warn iss="ISS-25">เล่มไม่ระบุวิธีเก็บข้อมูล ขนาดตัวอย่าง และช่วงเวลาสำรวจผู้มีส่วนได้ส่วนเสีย</Warn></div>
         </Section>
 
-        <Section id="sources" title="① ผู้มีส่วนได้ส่วนเสียและแหล่งข้อมูล">
-          <div className="tags">{sources.map(s => <span key={s} className="pill ghost">{s}</span>)}</div>
+        <Section id="alluvial" title="แผนภาพสายธารความเชื่อมโยง (Alluvial Diagram)"
+          sub={`เลือกมุมมองเพื่อดูว่าแต่ละองค์ประกอบไหลเชื่อมกันอย่างไร · ${major === "ALL" ? "ทุกวิชาเอก" : `วิชาเอก ${major}`}`}>
+          <div className="alv-pick" role="tablist">
+            {VIEWS.map(v => (
+              <button key={v.id} role="tab" aria-selected={view === v.id} className={`alv-tab${view === v.id ? " on" : ""}`}
+                onClick={() => setView(v.id)}>{v.name}</button>
+            ))}
+          </div>
+          <p className="alv-desc">{cur.desc}</p>
+          <Alluvial key={view + major} columns={vd.columns} nodes={vd.nodes} links={vd.links} height={vd.height} />
+          {view === "evidence" && unused.length > 0 && (
+            <div className="warnlist"><Warn iss="ISS-34">{unused.map(s => s.name).join(", ")} ไม่ถูกอ้างเป็นหลักฐานของความต้องการข้อใด (แท่งที่ไม่มีสายออก)</Warn></div>
+          )}
         </Section>
 
-        <Section id="needs" title="② ความต้องการ → PLO" sub="ตารางที่ 1 หมวด 3.3 ของเล่ม">
+        <Section id="sources" title="① แหล่งหลักฐาน" sub="ภาคผนวก ง ข้อ 2 — แยกผู้มีส่วนได้ส่วนเสียโดยตรงออกจากมาตรฐาน ข้อมูลอาชีพ และนโยบาย">
+          <div className="tblwrap">
+            <table className="tbl">
+              <thead><tr><th>รหัส</th><th>แหล่งหลักฐาน</th><th>ประเภท</th><th className="r">ความต้องการที่รองรับ</th></tr></thead>
+              <tbody>
+                {SOURCES.map(s => {
+                  const ns = NEEDS.filter(n => n.ev.includes(s.id));
+                  return (
+                    <tr key={s.id}>
+                      <td className="mono">{s.id}</td><td>{s.name}</td>
+                      <td><span className="tags"><i className="gdot" style={{ background: TYPE[s.type].color }} /> {TYPE[s.type].label}</span></td>
+                      <td className="r">{ns.length ? ns.map(n => n.id).join(", ") : <span className="warn-badge">ไม่มี</span>}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
+        <Section id="n14" title="② ความต้องการ 14 ประเด็น" sub="ภาคผนวก ง ข้อ 6–8 — ข้อกำหนดสมรรถนะ หลักฐาน ระดับความสำคัญ และ PLO ที่รับไป">
+          <div className="tags" style={{ marginBottom: 10 }}>
+            {PRIORITY.filter(p => p.id !== "P3").map(p => <span key={p.id} className="pill" style={{ "--pc": PRIO_COLOR[p.id] }}>{p.id} · {p.label}</span>)}
+          </div>
+          <div className="tblwrap">
+            <table className="tbl">
+              <thead><tr><th>ประเด็น</th><th>ความต้องการ</th><th>ข้อกำหนดสมรรถนะ</th><th>หลักฐาน</th><th>PLO</th></tr></thead>
+              <tbody>
+                {NEEDS.map(n => {
+                  const ps = plos.filter(p => (PLO_NEEDS[p.id] || []).includes(n.id));
+                  const direct = n.ev.some(e => SOURCES.find(s => s.id === e)?.type === "direct");
+                  return (
+                    <tr key={n.id}>
+                      <td><span className="sev" style={{ background: PRIO_COLOR[n.prio] }}>{n.id}</span><span className="sub">{n.prio}</span></td>
+                      <td>{n.text}</td><td className="mut">{n.comp}</td>
+                      <td>{n.ev.join(", ")}{!direct && <span className="sub">⚠ ไม่มีหลักฐานโดยตรง</span>}</td>
+                      <td><span className="tags">{ps.map(p => <PloChip key={p.id} id={p.id} small />)}</span></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="hint">{PRIORITY.find(p => p.id === "P3")?.id} · {PRIORITY.find(p => p.id === "P3")?.label}: {PRIORITY.find(p => p.id === "P3")?.items}</p>
+        </Section>
+
+        <Section id="needs" title="③ ความคาดหวังรายข้อ PLO" sub="ตารางที่ 1 หมวด 3.3 ของเล่ม">
           <div className="tblwrap">
             <table className="tbl">
               <thead><tr><th>PLO</th><th>ความต้องการ/ความคาดหวัง</th><th>แหล่งข้อมูล</th></tr></thead>
@@ -49,7 +114,7 @@ export default function Obe() {
           </div>
         </Section>
 
-        <Section id="cascade" title="③ PLO → YLO → CLO" sub="จำนวนที่กระจายลงแต่ละชั้น">
+        <Section id="cascade" title="④ PLO → YLO → CLO" sub="จำนวนที่กระจายลงแต่ละชั้น">
           <div className="tblwrap">
             <table className="tbl">
               <thead><tr><th>PLO</th><th>Generic/Specific</th><th className="r">YLO</th><th className="r">รายวิชา</th><th className="r">CLO</th></tr></thead>
@@ -71,7 +136,7 @@ export default function Obe() {
           </div>
         </Section>
 
-        <Section id="activities" title="④ กิจกรรมเสริมหลักสูตร" sub="หมวด 3.4 ของเล่ม">
+        <Section id="activities" title="⑤ กิจกรรมเสริมหลักสูตร" sub="หมวด 3.4 ของเล่ม">
           {ACTIVITIES.rows.map(r => (
             <div key={r[0]} className="box">
               <h3>ชั้นปีที่ {r[0]} · {r[1].split(" - ")[0]}</h3>

@@ -187,6 +187,36 @@ emit("teaching.js", {
   PLO_ASSESSMENT: d.ploAssessment,
 });
 
+/* ---------- obe.js : ภาคผนวก ง จากวอลต์ (LE_Vault/04_Appendix_Data/Stakeholder_Needs.md) ----------
+   ภาคผนวก ง เป็น PDF ที่ดึงข้อความไทยไม่ได้ จึงกรอกเป็นตารางในวอลต์ แล้วอ่านตามหัวข้อ ## และลำดับคอลัมน์ */
+const NEEDS_MD = resolve(here, "../../LE_Vault/04_Appendix_Data/Stakeholder_Needs.md");
+if (!existsSync(NEEDS_MD)) throw new Error(`ไม่พบ ${NEEDS_MD}`);
+const mdTables = {};
+{
+  let sec = null;
+  for (const line of readFileSync(NEEDS_MD, "utf8").replace(/\r\n/g, "\n").split("\n")) {
+    const h = line.match(/^## (.+)$/);
+    if (h) { sec = h[1].trim(); mdTables[sec] = []; continue; }
+    if (!sec || !/^\|/.test(line) || /^\|\s*-/.test(line)) continue;
+    const cells = line.replace(/^\||\|\s*$/g, "").split("|").map(s => s.trim());
+    mdTables[sec].push(cells);
+  }
+  for (const k of Object.keys(mdTables)) mdTables[k] = mdTables[k].slice(1);   // ตัดแถวหัวตาราง
+}
+const tbl = name => need(`Stakeholder_Needs.md › ${name}`, mdTables[name]);
+const ids = s => (s || "").split(",").map(x => x.trim()).filter(Boolean);
+const SOURCES = tbl("แหล่งหลักฐาน").map(([id, name, type]) => ({ id, name, type }));
+const NEEDS = tbl("ความต้องการ 14 ประเด็น").map(([id, text, comp, ev, prio]) => ({ id, text, comp, ev: ids(ev), prio }));
+const PRIORITY = tbl("ระดับความสำคัญ").map(([id, label, items]) => ({ id, label, items }));
+const PLO_NEEDS = Object.fromEntries(tbl("ความต้องการ → PLO").map(([plo, ns]) => [plo, ids(ns)]));
+const TOOLS = tbl("เครื่องมือระดับกิจกรรม (P3) → PLO").map(([id, text, act, plos]) => ({ id, text, act, plos: ids(plos) }));
+for (const n of NEEDS) for (const e of n.ev) if (!SOURCES.some(s => s.id === e)) throw new Error(`${n.id}: ไม่รู้จักแหล่งหลักฐาน ${e}`);
+for (const [p, ns] of Object.entries(PLO_NEEDS)) {
+  if (!d.plos.some(x => x.id === p)) throw new Error(`ไม่รู้จัก ${p} ในตารางความต้องการ → PLO`);
+  for (const n of ns) if (!NEEDS.some(x => x.id === n)) throw new Error(`${p}: ไม่รู้จักความต้องการ ${n}`);
+}
+emit("obe.js", { SOURCES, NEEDS, PRIORITY, PLO_NEEDS, TOOLS });
+
 /* ---------- docs.js : เนื้อหาหมวด 5–9 ตามลำดับในเล่ม (หัวข้อ · ย่อหน้า · ตาราง) ---------- */
 for (const n of ["5", "6", "7", "8", "9"]) need(`docs.${n}`, d.docs[n]?.blocks);
 emit("docs.js", { DOCS: d.docs });
