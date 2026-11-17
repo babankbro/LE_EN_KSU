@@ -1,0 +1,29 @@
+# template ต้นแบบ (เป็น repo แยก: github.com/babankbro/KSU-AI-EN)
+KSU-AI-EN/
+
+# Node / Vite
+node_modules/
+dist/
+*.log
+.vercel/
+
+# ไฟล์สร้างอัตโนมัติจาก data/curriculum.json (npm run data)
+LE_web/web/src/generated/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Local settings / secrets
+.claude/settings.local.json
+.env
+.env.*
+
+# OS / Office lock files
+.DS_Store
+Thumbs.db
+~$*
+
+# Obsidian per-device state
+LE_web/.obsidian/workspace*.json
