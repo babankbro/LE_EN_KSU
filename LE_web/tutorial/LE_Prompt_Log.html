@@ -1,0 +1,573 @@
+<title>Prompt ทีละขั้น</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Bai+Jamjuree:wght@600;700&display=swap">
+<style>
+/* Layout: สมุดบันทึก prompt 10 แผ่น — แต่ละการ์ดคือคำสั่งจริงหนึ่งข้อ (ซ้าย) คู่กับผลลัพธ์ที่ได้ (ขวา) เรียงตามเวลา */
+:root{
+  --bg:#fbf4f7; --sheet:#ffffff; --ink:#2b1d24; --muted:#6c5762; --line:#f0d7e2;
+  --rose:#a23b6a; --rose-2:#c4618d; --pink:#f2b3cb; --blush:#fde8f0;
+  --ie:#1f6fb2; --sc:#1a8a6a; --amber:#9a6a14; --bubble:#fff6fa;
+  --f-display:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai","Noto Sans Thai","Segoe UI",Tahoma,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1a1116; --sheet:#24171e; --ink:#f6e8ee; --muted:#c6a8b7; --line:#3c2632;
+  --rose:#f4a9c8; --rose-2:#e88bb3; --pink:#7a3d58; --blush:#33202a;
+  --ie:#7db8ef; --sc:#6fd3b1; --amber:#f0c066; --bubble:#2c1c25; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1a1116; --sheet:#24171e; --ink:#f6e8ee; --muted:#c6a8b7; --line:#3c2632;
+  --rose:#f4a9c8; --rose-2:#e88bb3; --pink:#7a3d58; --blush:#33202a;
+  --ie:#7db8ef; --sc:#6fd3b1; --amber:#f0c066; --bubble:#2c1c25; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 28px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+a{color:var(--rose)}
+code,.mono{font-family:var(--f-mono);font-size:.86em}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.25;margin:0}
+
+/* ดัชนีแฟ้ม */
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;
+  display:flex;gap:6px;align-items:center;max-width:1080px;margin:0 auto;border-bottom:1px solid var(--line)}
+.tabs .brand{font-family:var(--f-display);font-weight:700;color:var(--rose);margin-right:6px;white-space:nowrap}
+.tablist{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.tablist::-webkit-scrollbar{display:none}
+.tab{flex:none;appearance:none;border:1px solid var(--line);background:var(--sheet);color:var(--muted);
+  font:600 .78rem/1 var(--f-mono);padding:8px 10px;border-radius:9px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--rose);border-color:var(--rose);color:var(--sheet)}
+.tab:focus-visible,.nav button:focus-visible{outline:2px solid var(--rose);outline-offset:2px}
+
+/* แผ่น */
+.sheet{max-width:1080px;margin:18px auto 0;background:var(--sheet);border:1px solid var(--line);border-radius:18px;
+  padding:clamp(18px,3.5vw,40px);display:grid;gap:18px}
+.sheet[hidden]{display:none}
+.head{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;align-items:end}
+.num{font-family:var(--f-display);font-weight:700;font-size:clamp(3rem,8vw,4.6rem);line-height:.9;color:var(--pink);
+  font-variant-numeric:tabular-nums}
+.eyebrow{font:600 .8rem/1.3 var(--f-body);letter-spacing:.02em;color:var(--rose-2)}
+.head h2{font-size:clamp(1.45rem,3.2vw,2.05rem)}
+.lead{grid-column:1/-1;margin:0;color:var(--muted);max-width:72ch}
+
+/* การ์ด prompt → ผลลัพธ์ */
+.card{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:10px 20px;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+@media (max-width:820px){.card{grid-template-columns:minmax(0,1fr)}}
+.meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.idx{font-family:var(--f-display);font-weight:700;font-size:1.35rem;line-height:1;color:var(--rose);font-variant-numeric:tabular-nums}
+.time{font:600 .78rem/1 var(--f-mono);color:var(--muted)}
+.meta h3{font-size:1.02rem;flex:1 1 220px}
+.chip{display:inline-block;font:600 .7rem/1.5 var(--f-mono);padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.chip.q{color:var(--amber)}.chip.ask{color:var(--ie)}.chip.sub{color:var(--sc)}.chip.tools{color:var(--muted)}
+.prompt{background:var(--bubble);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:10px 13px;min-width:0;align-self:start}
+.prompt .who{font:600 .68rem/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--rose-2);display:block;margin-bottom:5px}
+.prompt q{quotes:none;font-weight:600;display:block;overflow-wrap:anywhere}
+.tip{display:block;color:var(--muted);margin-top:8px;font-size:.82rem;line-height:1.5;border-top:1px dashed var(--line);padding-top:6px}
+.tip b{color:var(--rose-2)}
+.res{min-width:0}
+.res .label{margin-bottom:2px}
+.list{margin:0;padding-left:1.15em}
+.list li{margin:3px 0}
+.list li::marker{color:var(--rose-2)}
+.label{font:600 .72rem/1.3 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.files{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.files code{background:var(--blush);border-radius:6px;padding:1px 7px;font-size:.76rem}
+.lesson{border-left:4px solid var(--rose-2);background:var(--blush);padding:10px 14px;border-radius:0 12px 12px 0}
+.lesson b{color:var(--rose)}
+
+/* ตัวเลข */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px}
+.stat{border-top:3px solid var(--pink);padding-top:8px}
+.stat b{display:block;font-family:var(--f-display);font-size:1.7rem;line-height:1.1;color:var(--rose);font-variant-numeric:tabular-nums}
+.stat span{font-size:.8rem;color:var(--muted);line-height:1.4;display:block}
+
+/* เส้นเวลา */
+.tl{list-style:none;margin:0;padding:0;columns:2 300px;column-gap:26px}
+.tl li{break-inside:avoid;display:grid;grid-template-columns:2.4em 3.4em minmax(0,1fr);gap:0 6px;padding:5px 0;border-bottom:1px solid var(--line);font-size:.86rem;line-height:1.45}
+.tl b{font-family:var(--f-mono);color:var(--rose)}
+.tl time{font-family:var(--f-mono);color:var(--muted);font-size:.8rem}
+.tl span i{font-style:normal;color:var(--muted)}
+.tl li.q b::after{content:"•";color:var(--amber);margin-left:2px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);align-items:center}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:820px){.cols{grid-template-columns:minmax(0,1fr)}}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{padding:7px 11px;text-align:left;vertical-align:top;border-top:1px solid var(--line)}
+thead th{border-top:0;background:var(--blush);font-size:.76rem;color:var(--muted)}
+pre.tpl{margin:0;background:var(--blush);border-radius:12px;padding:12px 14px;font:500 .8rem/1.65 var(--f-mono);white-space:pre-wrap;overflow-wrap:anywhere}
+
+.nav{max-width:1080px;margin:14px auto 0;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.nav button{appearance:none;border:1px solid var(--rose);background:var(--sheet);color:var(--rose);font:600 .9rem var(--f-body);
+  padding:9px 16px;border-radius:10px;cursor:pointer}
+.nav button.primary{background:var(--rose);color:var(--sheet)}
+.nav button:disabled{opacity:.35;cursor:default}
+.nav .pos{font:600 .8rem var(--f-mono);color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:in .22s ease-out}@keyframes in{from{opacity:.6;transform:translateY(6px)}to{opacity:1;transform:none}}}
+
+/* พิมพ์/ส่งออก PDF: ครบ 10 แผ่น แผ่นละหนึ่งหน้า A4 แนวนอน · โหมดสว่างเสมอ */
+@page{size:A4 landscape;margin:8mm}
+@media print{
+  :root,:root[data-theme="dark"]{--bg:#fff;--sheet:#fff;--ink:#2b1d24;--muted:#6c5762;--line:#f0d7e2;--rose:#a23b6a;--rose-2:#c4618d;
+    --pink:#f2b3cb;--blush:#fde8f0;--ie:#1f6fb2;--sc:#1a8a6a;--amber:#9a6a14;--bubble:#fff6fa;color-scheme:light}
+  .eyebrow,.prompt .who,.label{letter-spacing:0}
+  html,body{background:#fff;padding:0;font-size:14.5px;line-height:1.55;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body::before,.tabs,.nav{display:none!important}
+  .sheet,.sheet[hidden]{display:grid!important;max-width:none;margin:0;border:0;border-radius:0;padding:6px 0 0;gap:9px;
+    break-after:page;page-break-after:always;animation:none;align-content:start}
+  .sheet:last-of-type{break-after:auto;page-break-after:auto}
+  .num{font-size:2.8rem}.head h2{font-size:1.4rem}
+  .card{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);padding:9px 12px;gap:6px 16px;break-inside:avoid}
+  .cols{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+  .tl{columns:2;column-gap:20px}.tl li{padding:3px 0;font-size:.82rem}
+  .tbl-wrap{overflow:visible} table{font-size:.8rem} th,td{padding:4px 8px}
+  .stats{grid-template-columns:repeat(6,minmax(0,1fr))}.stat b{font-size:1.3rem}
+  .list li{margin:1px 0}
+  pre.tpl{font-size:.74rem;line-height:1.5}
+  .sheet::after{content:"Prompt ทีละขั้น · สร้างหลักสูตร วศ.บ. วิศวกรรมโลจิสติกส์ 2570 ด้วย AI";font:600 .68rem var(--f-mono);color:var(--muted);
+    border-top:1px solid var(--line);padding-top:4px}
+}
+</style>
+
+<header class="tabs">
+  <span class="brand">LE · Prompt</span>
+  <nav class="tablist" role="tablist" aria-label="หน้าในบันทึก prompt" id="tablist"></nav>
+</header>
+
+<!-- ───────────── 1 ภาพรวม ───────────── -->
+<section class="sheet" id="p1" data-title="ภาพรวม">
+  <div class="head">
+    <div class="num">01</div>
+    <div><div class="eyebrow">บันทึก prompt · 17 พ.ย. 2569 · 09:52–11:35 น.</div><h2>20 คำสั่ง จากโฟลเดอร์ Drive ถึงเว็บหลักสูตรบน GitHub</h2></div>
+    <p class="lead">ทุกคำสั่งในบันทึกนี้คัดจากแชทจริงตามตัวอักษร ไม่ได้เรียบเรียงใหม่ แต่ละข้อจับคู่กับผลลัพธ์ที่ AI รายงานกลับ หน้า 2–9 แสดงรายละเอียดทีละช่วง หน้า 10 สรุปรูปแบบ prompt ที่ได้ผลและ prompt แม่แบบสำหรับหลักสูตรถัดไป</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>20</b><span>คำสั่งจากผู้ใช้ (+ ตอบคำถาม 2 ครั้ง)</span></div>
+    <div class="stat"><b>1:43</b><span>ชั่วโมง:นาที ตั้งแต่คำสั่งแรกถึงคำสั่งสุดท้าย</span></div>
+    <div class="stat"><b>8</b><span>คำสั่งที่ส่งต่อคิวระหว่าง AI ยังทำงานอยู่</span></div>
+    <div class="stat"><b>357</b><span>tool calls ของ agent หลัก</span></div>
+    <div class="stat"><b>10</b><span>subagent: ผู้อ่าน 7 · ผู้เขียน 3</span></div>
+    <div class="stat"><b>20</b><span>เส้นทางเว็บ · 194 โน้ตในวอลต์</span></div>
+  </div>
+  <ol class="tl" aria-label="เส้นเวลาคำสั่งทั้งหมด">
+    <li><b>01</b><time>09:52</time><span>ดาวน์โหลดโฟลเดอร์ Drive <i>→ 6 ไฟล์ใน doc_ref</i></span></li>
+    <li><b>02</b><time>09:54</time><span>อ่านเอกสารทั้งหมด <i>→ ผู้อ่าน 7 ตัว · doc_notes</i></span></li>
+    <li class="q"><b>03</b><time>09:56</time><span>clone template <i>→ KSU-AI-EN</i></span></li>
+    <li class="q"><b>04</b><time>10:00</time><span>สร้าง LE_web จาก template <i>→ ราก vault + web</i></span></li>
+    <li class="q"><b>05</b><time>10:03</time><span>checklist · SRS · vault tutorial <i>→ 66 รายการ · ISS-01…56</i></span></li>
+    <li><b>06</b><time>10:12</time><span>เปิด vault ใน Obsidian <i>→ ลงทะเบียน vault</i></span></li>
+    <li><b>07</b><time>10:15</time><span>เปิดแล้ว <i>→ แนะนำจุดเริ่มอ่าน</i></span></li>
+    <li><b>08</b><time>10:15</time><span>เริ่มสร้างเว็บขั้นที่ 1 <i>→ ตัวดึงข้อมูล + เว็บ</i></span></li>
+    <li class="q"><b>09</b><time>10:16</time><span>สร้างเว็บ + update vault <i>→ 17 หน้ามีข้อมูล</i></span></li>
+    <li class="q"><b>10</b><time>10:28</time><span>ธีมชมพูพาสเทล <i>→ contrast ≥ 4.7:1</i></span></li>
+    <li><b>11</b><time>10:36</time><span>ทำต่อเลย <i>→ หมวด 5–9 · ครบ 20 เส้นทาง</i></span></li>
+    <li><b>12</b><time>10:42</time><span>พอก่อน <i>→ สรุปงานคงค้าง</i></span></li>
+    <li><b>13</b><time>10:44</time><span>แผนการเรียนแบบกราฟ + เต็มจอ <i>→ กระดาน 8 ภาค</i></span></li>
+    <li class="q"><b>14</b><time>10:44</time><span>รูปหน้าปก <i>→ SVG ตามธีม</i></span></li>
+    <li class="q"><b>15</b><time>10:46</time><span>สร้าง repo และ push <i>→ private · 264 ไฟล์</i></span></li>
+    <li><b>16</b><time>10:50</time><span>แผนภาพ Alluvial หน้า OBE <i>→ 5 มุมมอง · ISS-34</i></span></li>
+    <li class="q"><b>17</b><time>10:54</time><span>tutorial info html 10 หน้า <i>→ artifact</i></span></li>
+    <li><b>18</b><time>11:11</time><span>ขอ pdf <i>→ A4 แนวนอน 10 หน้า</i></span></li>
+    <li><b>19</b><time>11:20</time><span>make repo public <i>→ ถามก่อน 2 ข้อ · repo ใหม่ที่สะอาด</i></span></li>
+    <li><b>20</b><time>11:35</time><span>เก็บไว้ก่อน <i>→ คง repo เก่าเป็น private</i></span></li>
+  </ol>
+  <div class="legend"><span><b style="color:var(--amber)">•</b> ส่งต่อคิวขณะ AI ทำงานคำสั่งก่อนหน้า</span><span>เวลาเป็นเวลาไทย (UTC+7)</span></div>
+</section>
+
+<!-- ───────────── 2 วัตถุดิบ ───────────── -->
+<section class="sheet" id="p2" data-title="วัตถุดิบ" hidden>
+  <div class="head">
+    <div class="num">02</div>
+    <div><div class="eyebrow">ช่วงที่ 1 · คำสั่ง 01–03</div><h2>ดึงเอกสาร อ่านให้ครบ แล้วหยิบ template</h2></div>
+  </div>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#01</span><span class="time">09:52</span><h3>ดาวน์โหลดเอกสารต้นฉบับ</h3><span class="chip tools">9 tool calls</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>download content https://drive.google.com/drive/folders/… สร้าง folder เก็บ doc_ref</q>
+      <span class="tip"><b>ทำไมได้ผล:</b> บอกทั้งต้นทางและชื่อโฟลเดอร์ปลายทาง โครงสร้างโปรเจกต์จึงชัดตั้งแต่คำสั่งแรก</span></div>
+    <div class="res"><p class="label">ผลลัพธ์</p>
+      <ul class="list">
+        <li>ได้ 6 ไฟล์ รวม 6.6 MB: เล่มหลักสูตร .docx (643 KB) และ .pdf (2.6 MB) กับภาคผนวก ก ข ค ง</li>
+        <li>ตรวจส่วนหัวทุกไฟล์ว่าเป็น PDF/DOCX จริง ไม่ใช่หน้า error ของ Google</li>
+        <li>ภาคผนวก ค (3.0 MB) เป็นภาพสแกน ต้องอ่านจากภาพ</li>
+      </ul>
+      <div class="files"><code>doc_ref/</code></div></div>
+  </article>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#02</span><span class="time">09:54</span><h3>อ่านและทำความเข้าใจทุกเอกสาร</h3><span class="chip sub">ผู้อ่าน 7 ตัว</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>read and understand all doc</q>
+      <span class="tip"><b>ข้อสังเกต:</b> คำสั่งสั้นมาก AI จึงต้องเลือกวิธีเอง คือแบ่งเล่มตามหมวดแล้วให้ subagent อ่านคู่ขนาน ถ้าต้องการบันทึกเป็นไฟล์ในรูปแบบใด ให้ระบุในคำสั่ง</span></div>
+    <div class="res"><p class="label">ผลลัพธ์</p>
+      <ul class="list">
+        <li>แปลง .docx เป็นข้อความที่เก็บตารางเป็นแถว ราว 430,000 ตัวอักษร (PDF ภาษาไทยได้สระเพี้ยน จึงไม่ใช้)</li>
+        <li>subagent 7 ตัวอ่านคนละช่วง: หมวด 1–2 · 3 · 4 (3 ชุด) · 5–6 · 7–9 และภาคผนวก</li>
+        <li>บันทึกการอ่านรายหมวด พร้อมหัวข้อข้อสังเกตท้ายบันทึก ต่อมาคัดลอกเข้าวอลต์</li>
+      </ul>
+      <div class="files"><code>doc_notes/</code><code>LE_Vault/03_Source_Notes/</code></div></div>
+  </article>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#03</span><span class="time">09:56</span><h3>Clone template เว็บหลักสูตร</h3><span class="chip q">ส่งต่อคิว</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>clone git template web of project https://github.com/babankbro/KSU-AI-EN</q></div>
+    <div class="res"><p class="label">ผลลัพธ์</p>
+      <ul class="list">
+        <li>clone ลงโฟลเดอร์ <code>KSU-AI-EN/</code> ไว้เป็นต้นแบบ: React 18 · Vite 5 · react-router 6 · dagre</li>
+        <li>ภายหลังใส่ใน <code>.gitignore</code> เพราะเป็น repo แยกอยู่แล้ว</li>
+      </ul></div>
+  </article>
+</section>
+
+<!-- ───────────── 3 วางแผน ───────────── -->
+<section class="sheet" id="p3" data-title="วางแผน" hidden>
+  <div class="head">
+    <div class="num">03</div>
+    <div><div class="eyebrow">ช่วงที่ 2 · คำสั่ง 04–07</div><h2>ตั้งโครงโปรเจกต์ และเขียนข้อกำหนดก่อนเขียนโค้ด</h2></div>
+  </div>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#04</span><span class="time">10:00</span><h3>สร้างโฟลเดอร์งานจาก template</h3><span class="chip q">ส่งต่อคิว</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>ต้องการสร้าง web และ obsidian สำหรับหลักสูตรวิศวกรรมโลจิสติกส์ ให้สร้าง folder ใหม่ LE_web โดยใช้ template จากที่ clone จาก git</q></div>
+    <div class="res"><p class="label">ผลลัพธ์</p>
+      <ul class="list">
+        <li><code>LE_web/</code> เป็นทั้งราก Obsidian vault และที่อยู่ของเว็บ <code>web/</code> ที่คัดโครงจาก template</li>
+        <li>วางโครงวอลต์ <code>LE_Vault/</code> แยก Requirements · Build Tutorial · Source Notes</li>
+      </ul></div>
+  </article>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#05</span><span class="time">10:03</span><h3>Checklist · SRS · วอลต์ tutorial</h3><span class="chip q">ส่งต่อคิว</span><span class="chip sub">ผู้เขียน 3 ตัว</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>ก่อนที่จะทำเว็บ ช่วยสร้าง checklist สิ่งที่หลักสูตร หรือเว็บต้องมีข้อมูล เขียน SRS สร้าง obsidian vault สำหรับ tutorial build curriculum</q>
+      <span class="tip"><b>คำสั่งสำคัญที่สุดของทั้งชุด:</b> "ก่อนที่จะทำเว็บ" บังคับให้ตรวจเล่มและกำหนดเกณฑ์ยอมรับก่อน งานหลังจากนี้ทุกชิ้นจึงตรวจรับได้</span></div>
+    <div class="res"><p class="label">ผลลัพธ์ (รายงาน 10:11 น.)</p>
+      <ul class="list">
+        <li>Checklist ข้อมูลหลักสูตร 66 รายการ ตามโครง 9 หมวด และ checklist ข้อมูลที่เว็บต้องใช้</li>
+        <li>ทะเบียนข้อสังเกต ISS-01…56 แบ่งระดับ P0 / P1 / P2 เป็นที่มาของป้าย ⚠ บนเว็บ</li>
+        <li>SRS แบ่ง 4 ชุด: DP ไปป์ไลน์ · VR วอลต์ · FR เว็บ · NFR ทุกข้อมีเกณฑ์ยอมรับ</li>
+        <li>Build Tutorial 14 ขั้น เขียนโดย subagent 2 ตัว (ขั้น 01–07 และ 08–14)</li>
+        <li>ตัวดึงข้อมูลรุ่นแรก: เล่ม → <code>curriculum.json</code> 90 วิชา · 254 CLO · 13 PLO · 27 YLO ใช้ยืนยันตัวเลขใน checklist</li>
+      </ul>
+      <div class="files"><code>01_Requirements/</code><code>02_Build_Tutorial/</code><code>tools/extract_curriculum.py</code></div></div>
+  </article>
+
+  <div class="cols">
+    <article class="card" style="grid-template-columns:minmax(0,1fr)">
+      <div class="meta"><span class="idx">#06</span><span class="time">10:12</span><h3>เปิดวอลต์</h3></div>
+      <div class="prompt"><span class="who">คำสั่ง</span><q>เปิด vault ใน Obsidian ให้ดูหน่อย</q></div>
+      <ul class="list">
+        <li>เพิ่ม <code>LE_web</code> ในรายการ vault ของ Obsidian (สำรองไฟล์ตั้งค่าเดิมไว้) แล้วเปิดที่ <code>00_Home</code></li>
+        <li>บอกวิธีแก้ถ้าขึ้น "Vault not found"</li>
+      </ul>
+    </article>
+    <article class="card" style="grid-template-columns:minmax(0,1fr)">
+      <div class="meta"><span class="idx">#07</span><span class="time">10:15</span><h3>ยืนยันว่าเห็นแล้ว</h3></div>
+      <div class="prompt"><span class="who">คำสั่ง</span><q>เปิดแล้ว</q></div>
+      <ul class="list">
+        <li>แนะนำให้เริ่มอ่านที่ Requirements หรือ Source Notes</li>
+        <li>แจ้งว่า tutorial ขั้น 01–14 ยังเขียนไม่เสร็จ จะตรวจลิงก์ให้เมื่อเสร็จ</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<!-- ───────────── 4 สร้างเว็บ ───────────── -->
+<section class="sheet" id="p4" data-title="สร้างเว็บ" hidden>
+  <div class="head">
+    <div class="num">04</div>
+    <div><div class="eyebrow">ช่วงที่ 3 · คำสั่ง 08–10 · รายงานรวม 10:30 น. · 116 tool calls</div><h2>สามคำสั่งติดกัน ได้เว็บ 17 หน้าและวอลต์ที่สร้างจากข้อมูล</h2></div>
+    <p class="lead">คำสั่ง 09 และ 10 ส่งต่อคิวระหว่างที่ AI ทำคำสั่ง 08 อยู่ AI จึงรวมทั้งสามคำสั่งเป็นงานเดียวและรายงานผลครั้งเดียว</p>
+  </div>
+
+  <div class="cols">
+    <div style="display:grid;gap:10px;align-content:start">
+      <div class="prompt"><span class="who">#08 · 10:15</span><q>เริ่มสร้างเว็บตาม tutorial ขั้นที่ 1</q></div>
+      <div class="prompt"><span class="who">#09 · 10:16 · ส่งต่อคิว</span><q>สร้างเว็บและ update vault ของหลักสูตร LE</q></div>
+      <div class="prompt"><span class="who">#10 · 10:28 · ส่งต่อคิว</span><q>เปลี่ยน shade สี เป็นชมพู พาดเทล</q>
+        <span class="tip"><b>ทำไมได้ผล:</b> อ้าง tutorial ที่เขียนไว้แล้ว AI จึงทำตามลำดับขั้นที่ตกลงกันไว้ ไม่ต้องอธิบายซ้ำ</span></div>
+      <div class="lesson"><b>สิ่งที่ AI ทำโดยไม่ได้สั่ง:</b> ตรวจข้อสังเกตกับเล่มจริงอีกรอบ แล้วแก้ทะเบียน เช่น ชื่อ PLO ภาษาอังกฤษมีครบ 13 ข้อ (เดิมคิดว่าขาด 9) และพบ ISS-33 ใหม่: 61 แถว (IE 31 · SC 30) ผูก YLO กับ PLO ที่ YLO นั้นไม่ได้รองรับ</div>
+    </div>
+    <div class="res"><p class="label">ผลลัพธ์</p>
+      <ul class="list">
+        <li><b>ไปป์ไลน์:</b> <code>curriculum.json</code> → <code>build_vault.py</code> (โน้ตวอลต์) และ <code>build-data.mjs</code> (ข้อมูลเว็บ)</li>
+        <li><b>เว็บ 17 หน้ามีข้อมูล:</b> หน้าแรก โครงสร้าง อาจารย์ รายวิชา (ค้นหา/กรอง) หน้ารายวิชาแสดง CLO → YLO → PLO แผนการเรียน กราฟวิชาบังคับก่อน OBE PLO YLO แผนที่ CLO ชุดทักษะ ข้อสังเกตของเล่ม</li>
+        <li><b>ตัวสลับวิชาเอก IE / SC / ทั้งหมด</b> ติดไปกับ URL เมื่อเปลี่ยนหน้าหรือแชร์ลิงก์</li>
+        <li><b>ป้าย ⚠ พร้อมรหัส ISS</b> ทุกจุดที่เล่มขาดหรือผิด แทนการปล่อยช่องว่าง</li>
+        <li><b>ธีมชมพูพาสเทล</b> contrast ต่ำสุด 4.7:1 ทั้งโหมดสว่างและมืด สีแยกวิชาเอกคงเดิม</li>
+        <li><b>มือถือ:</b> แก้ต้นเหตุที่ทำให้หน้าเลื่อนแนวนอน</li>
+        <li><b>วอลต์:</b> 152 โน้ตสร้างอัตโนมัติ · tutorial ครบ 14 ขั้น · รวม 183 โน้ต ลิงก์เสีย 0</li>
+        <li><b>ยังรอข้อมูล:</b> <code>/teaching</code> <code>/assessment</code> <code>/quality</code></li>
+      </ul>
+      <div class="files"><code>tools/build_vault.py</code><code>web/scripts/build-data.mjs</code><code>LE_Vault/10_Curriculum/</code></div></div>
+  </div>
+</section>
+
+<!-- ───────────── 5 ทำต่อ ───────────── -->
+<section class="sheet" id="p5" data-title="ทำต่อ / หยุด" hidden>
+  <div class="head">
+    <div class="num">05</div>
+    <div><div class="eyebrow">ช่วงที่ 4 · คำสั่ง 11–12</div><h2>คำสั่งสองคำที่ควบคุมจังหวะงาน</h2></div>
+    <p class="lead">เมื่อ AI รายงานชัดว่าเหลืออะไร ผู้ใช้ก็สั่งต่อได้ด้วยคำเดียว และสั่งหยุดได้โดยไม่เสียงานที่ทำไว้</p>
+  </div>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#11</span><span class="time">10:36</span><h3>ทำหน้าที่เหลือ (หมวด 5–9)</h3><span class="chip tools">35 tool calls</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>ทำต่อเลย</q>
+      <span class="tip"><b>ทำไมได้ผล:</b> รายงานรอบก่อนระบุชื่อ 3 หน้าที่ยังรอข้อมูลไว้แล้ว "ทำต่อเลย" จึงมีขอบเขตชัดโดยไม่ต้องพิมพ์ซ้ำ</span></div>
+    <div class="res"><p class="label">ผลลัพธ์ (10:42 น.)</p>
+      <ul class="list">
+        <li><code>/teaching</code> กลยุทธ์การสอน 5 แบบ × PLO วิธีสอนราย PLO (5.1) และหมวด 5.2 พบว่า LE2 · IE2 · IE4 มีกลยุทธ์รองรับแบบเดียว</li>
+        <li><code>/assessment</code> วิธีประเมินราย PLO แยกวิชาเอก น้ำหนักรวม 100% ทุก PLO (ตัวดึงตรวจให้ทุกครั้ง) และจุดประเมิน YLO 4 ชั้นปี</li>
+        <li><code>/quality</code> 5 แท็บ: แผนรับและงบประมาณ · อาจารย์ (6.7) · หมวด 7 · 8 · 9</li>
+        <li>ป้าย ⚠ ชี้ ISS-05 (เกณฑ์ผ่าน 60% ขัดกับ 50%) และ ISS-06 (ข้อความหลักสูตรอื่นหลงมาในหมวด 7)</li>
+        <li>เว็บครบ 20 เส้นทาง · วอลต์เพิ่ม 10 โน้ต รวม 193 · JS 245 KB gzip (เพดาน 400 KB)</li>
+      </ul></div>
+  </article>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#12</span><span class="time">10:42</span><h3>พักงาน</h3><span class="chip tools">0 tool calls</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>พอก่อน</q></div>
+    <div class="res"><p class="label">ผลลัพธ์</p>
+      <ul class="list">
+        <li>หยุดทันที ไม่เริ่มงานใหม่ แจ้งว่า dev server ยังเปิดที่พอร์ต 5190</li>
+        <li>ให้คำสั่งสร้างข้อมูลใหม่หลังแก้เล่ม: <code>extract_curriculum.py → build_vault.py → npm run build</code></li>
+        <li>ระบุงานคงค้าง: ระบบ overrides สำหรับระดับ I/R/M และภาคผนวก ก / ง</li>
+      </ul></div>
+  </article>
+</section>
+
+<!-- ───────────── 6 ภาพและ repo ───────────── -->
+<section class="sheet" id="p6" data-title="กราฟ · ปก · repo" hidden>
+  <div class="head">
+    <div class="num">06</div>
+    <div><div class="eyebrow">ช่วงที่ 5 · คำสั่ง 13–15 · รายงานรวม 10:49 น. · 40 tool calls</div><h2>อ้างหน้าตัวอย่างด้วยลิงก์ แล้วเก็บงานขึ้น GitHub</h2></div>
+  </div>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#13</span><span class="time">10:44</span><h3>แผนการเรียนแบบกราฟ</h3></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>https://ksu-ai-en.vercel.app/plan จากตัวอย่าง ปรับแผนการเรียนให้มีแสดงเป็นกราฟเหมือนกัน มีปุ่ม full screen ได้</q>
+      <span class="tip"><b>ทำไมได้ผล:</b> ลิงก์ตัวอย่างที่ใช้งานได้จริงอธิบายหน้าตาได้ดีกว่าคำบรรยายยาว ๆ</span></div>
+    <div class="res"><p class="label">ผลลัพธ์</p>
+      <ul class="list">
+        <li>กระดาน 4 ชั้นปี × 2 ภาค ความสูงบล็อกแปรตามหน่วยกิต คลิกบล็อกเพื่อเปิดหน้ารายวิชา</li>
+        <li>กดสีในคำอธิบายเพื่อกรองกลุ่มวิชา วิชาเลือกที่ยังไม่มีรหัสเป็นบล็อกเส้นประ</li>
+        <li>ยอดรวม 122 หน่วยกิตทั้ง IE และ SC</li>
+        <li>ปุ่ม ⛶ ดูเต็มจอ ย่อให้เห็นครบ 8 ภาค ทดสอบที่ 1440×900</li>
+      </ul></div>
+  </article>
+
+  <div class="cols">
+    <article class="card" style="grid-template-columns:minmax(0,1fr)">
+      <div class="meta"><span class="idx">#14</span><span class="time">10:44</span><h3>รูปหน้าปก</h3><span class="chip q">ส่งต่อคิว</span></div>
+      <div class="prompt"><span class="who">คำสั่ง</span><q>ช่วยสร้างรูปหน้าปก ในหน้าแรก</q></div>
+      <ul class="list">
+        <li>วาด SVG ใหม่: คลังสินค้า โรงงาน รถขนส่ง เส้นทางโซ่อุปทาน</li>
+        <li>ใช้สีจากตัวแปรธีม จึงเปลี่ยนตามโหมดมืดเอง บนมือถือย้ายขึ้นเหนือหัวข้อ</li>
+      </ul>
+    </article>
+    <article class="card" style="grid-template-columns:minmax(0,1fr)">
+      <div class="meta"><span class="idx">#15</span><span class="time">10:46</span><h3>สร้าง repo และ push</h3><span class="chip q">ส่งต่อคิว</span></div>
+      <div class="prompt"><span class="who">คำสั่ง</span><q>create repo ชื่อ LE_EN_KSU และ push this work up</q></div>
+      <ul class="list">
+        <li>ตั้งเป็น <b>private</b> ตามนโยบายความลับงานวิจัย เพราะเล่มมีข้อมูลบุคคลและลายเซ็น</li>
+        <li>commit แรก 264 ไฟล์ พร้อม README · ไม่รวม template, node_modules, dist และไฟล์ที่ build ใหม่ได้</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<!-- ───────────── 7 Alluvial ───────────── -->
+<section class="sheet" id="p7" data-title="Alluvial" hidden>
+  <div class="head">
+    <div class="num">07</div>
+    <div><div class="eyebrow">ช่วงที่ 6 · คำสั่ง 16 · รายงาน 10:59 น.</div><h2>"เท่าที่เชื่อมโยงได้" กำหนดขอบเขตให้ AI ไม่แต่งข้อมูลเพิ่ม</h2></div>
+  </div>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#16</span><span class="time">10:50</span><h3>แผนภาพสายธารหน้า OBE</h3><span class="chip tools">53 tool calls (รวม #17)</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>จากตัวอย่าง แผนภาพสายธารความเชื่อมโยง (Alluvial Diagram) https://ksu-ai-en.vercel.app/obe หน้า obe ศึกษาภาคผนวก และสร้างแผนภาพดังตัวอย่าง เท่าที่เชื่อมโยงได้</q>
+      <span class="tip"><b>ทำไมได้ผล:</b> มีครบสามส่วน คือ ตัวอย่าง (ลิงก์) แหล่งข้อมูล (ภาคผนวก) และขอบเขต (เท่าที่เชื่อมโยงได้) AI จึงวาดเฉพาะเส้นที่มีหลักฐานในเล่ม</span></div>
+    <div class="res"><p class="label">ผลลัพธ์</p>
+      <ul class="list">
+        <li>อ่านภาคผนวก ง จากภาพหน้า PDF เพราะดึงข้อความไทยไม่ได้ แล้วกรอกเป็นตารางในวอลต์ให้สคริปต์อ่าน ("วอลต์ก่อนเว็บ")</li>
+        <li>ได้แหล่งหลักฐาน 10 แหล่ง · ความต้องการ N01–N14 (P0–P2) · ตารางความต้องการ → PLO · เครื่องมือ P3 6 รายการ</li>
+      </ul>
+      <div class="files"><code>LE_Vault/04_Appendix_Data/Stakeholder_Needs.md</code><code>web/src/Alluvial.jsx</code></div></div>
+  </article>
+
+  <div class="cols">
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>มุมมอง</th><th>สายเชื่อม</th><th>ความหนาสาย</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>หลักฐาน → ความต้องการ → PLO</td><td>จำนวนการเชื่อม</td></tr>
+        <tr><td>2</td><td>ความต้องการ → PLO → YLO → ชั้นปี</td><td>จำนวนการเชื่อม</td></tr>
+        <tr><td>3</td><td>PLO → YLO → กลุ่มรายวิชา</td><td>จำนวน CLO</td></tr>
+        <tr><td>4</td><td>เครื่องมือ P3 → PLO → กลยุทธ์การสอน</td><td>จำนวนการเชื่อม</td></tr>
+        <tr><td>5</td><td>ความต้องการ → PLO → ชั้นปีที่ประเมิน</td><td>น้ำหนักการประเมิน</td></tr>
+      </tbody>
+    </table></div>
+    <div style="display:grid;gap:10px;align-content:start">
+      <ul class="list">
+        <li>ชี้เพื่อไฮไลต์ · คลิกเพื่อปักหมุด · ดับเบิลคลิกเปิดหน้ารายละเอียด</li>
+        <li>ตรวจครบ 15 แบบ (5 มุมมอง × 3 วิชาเอก) ไม่มี error · มือถือไม่เลื่อนแนวนอน</li>
+        <li>เพิ่มตารางแหล่งหลักฐานและ N01–N14 ใต้แผนภาพ</li>
+      </ul>
+      <div class="lesson"><b>ผลพลอยได้ ISS-34:</b> แท่ง "ผู้ปกครอง" ไม่มีสายออก เพราะไม่มีความต้องการข้อใดอ้างผู้ปกครองเป็นหลักฐาน กลายเป็นข้อสังเกตใหม่ในทะเบียน</div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────── 8 คู่มือ ───────────── -->
+<section class="sheet" id="p8" data-title="คู่มือ · PDF" hidden>
+  <div class="head">
+    <div class="num">08</div>
+    <div><div class="eyebrow">ช่วงที่ 7 · คำสั่ง 17–18</div><h2>ให้ AI ถอดบทเรียนจากแชทของตัวเอง</h2></div>
+  </div>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#17</span><span class="time">10:54</span><h3>คู่มือ infographic 10 หน้า</h3><span class="chip q">ส่งต่อคิว</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>จากที่กล่าวมา ช่วยทำ tutorial การสร้างหลักสูตร จาก workflow ใน chat นี้ สร้างเป็น info html 10 หน้า</q>
+      <span class="tip"><b>ทำไมได้ผล:</b> กำหนดจำนวนหน้าไว้ AI จึงต้องจัดเรื่องให้ลงตัว หน้าละหนึ่งขั้นของ workflow</span></div>
+    <div class="res"><p class="label">ผลลัพธ์</p>
+      <ul class="list">
+        <li>หน้า HTML 10 แผ่น: ภาพรวม → รวบรวมเอกสาร → อ่านทั้งเล่ม → checklist → SRS → ตัวดึงข้อมูล → วอลต์ → เว็บ → ภาพข้อมูล → ตรวจรับ</li>
+        <li>ทุกแผ่นมีคำสั่งจริง ตัวเลขผลลัพธ์จริง และบทเรียน</li>
+        <li>เปลี่ยนหน้าด้วยแถบบน ปุ่ม หรือคีย์ลูกศร ลิงก์ตรงเข้าหน้าได้ เช่น <code>#p9</code> · ตรวจที่จอ 390px ทั้งสองโหมดสี</li>
+        <li>เผยแพร่เป็น artifact แบบ private และเก็บสำเนาใน repo</li>
+      </ul>
+      <div class="files"><code>LE_web/tutorial/LE_Curriculum_Tutorial.html</code></div></div>
+  </article>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#18</span><span class="time">11:11</span><h3>ส่งออกเป็น PDF</h3><span class="chip tools">10 tool calls</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>ขอ pdf</q></div>
+    <div class="res"><p class="label">ผลลัพธ์ (11:12 น.)</p>
+      <ul class="list">
+        <li>เพิ่มสไตล์สำหรับพิมพ์: A4 แนวนอน หน้าละหนึ่งแผ่น โทนสว่างเสมอ ซ่อนเมนู ใส่ชื่อคู่มือท้ายหน้า</li>
+        <li>สั่ง Chrome แบบ headless พิมพ์เป็น PDF ได้ 10 หน้า 343 KB แล้วเปิดตรวจหน้าที่มีแผนภาพ</li>
+        <li>หน้าเว็บของ artifact ยังเหมือนเดิม</li>
+      </ul>
+      <div class="files"><code>LE_web/tutorial/LE_Curriculum_Tutorial.pdf</code></div></div>
+  </article>
+</section>
+
+<!-- ───────────── 9 public ───────────── -->
+<section class="sheet" id="p9" data-title="เปิด public" hidden>
+  <div class="head">
+    <div class="num">09</div>
+    <div><div class="eyebrow">ช่วงที่ 8 · คำสั่ง 19–20 · 24 tool calls</div><h2>คำสั่งที่เสี่ยง AI ต้องถามกลับก่อนลงมือ</h2></div>
+    <p class="lead">การเปิด repo เป็นสาธารณะย้อนกลับไม่ได้ และ repo มีเอกสารต้นฉบับที่มีลายเซ็น AI จึงหยุดถาม 2 ครั้ง แทนการทำตามคำสั่งทันที</p>
+  </div>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#19</span><span class="time">11:20</span><h3>เปิด repo เป็นสาธารณะ</h3><span class="chip ask">AI ถามกลับ 2 ครั้ง</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>make repo public</q>
+      <span class="tip"><b>คำถามที่ 1:</b> เปิดแบบไหน? → ผู้ใช้เลือก <b>"ลบ doc_ref ก่อน (แนะนำ)"</b><br><b>คำถามที่ 2:</b> commit เก่ายังเปิดได้ด้วย SHA จะทำอย่างไร? → ผู้ใช้ไม่เลือก AI จึงใช้ทางที่ปลอดภัยกว่า</span></div>
+    <div class="res"><p class="label">ผลลัพธ์ (11:34 น.)</p>
+      <ul class="list">
+        <li>ลบ <code>doc_ref</code> ออกจากทุก commit ในประวัติ git ไฟล์ยังอยู่ในเครื่อง และใส่ใน <code>.gitignore</code></li>
+        <li>GitHub ยังเก็บ commit เก่าไว้ จึงเปลี่ยนชื่อ repo เดิมเป็น <code>LE_EN_KSU_private</code> แล้วสร้าง <code>LE_EN_KSU</code> ใหม่เป็น public จากประวัติที่สะอาด 5 commit</li>
+        <li>ตรวจซ้ำ: เปิด commit เก่าด้วย SHA ไม่ได้ และ <code>doc_ref</code> ตอบ 404</li>
+        <li>ตรวจสถานะ repo เดิมจาก GitHub โดยตรง พบว่าเป็น public อยู่ จึงปิดกลับเป็น private แล้วรายงานผู้ใช้พร้อมเวลาที่เกิดขึ้น</li>
+      </ul></div>
+  </article>
+
+  <article class="card">
+    <div class="meta"><span class="idx">#20</span><span class="time">11:35</span><h3>ตัดสินใจเรื่อง repo เก่า</h3><span class="chip tools">0 tool calls</span></div>
+    <div class="prompt"><span class="who">คำสั่ง</span><q>เก็บไว้ก่อน</q></div>
+    <div class="res"><p class="label">ผลลัพธ์</p>
+      <ul class="list">
+        <li>คง <code>LE_EN_KSU_private</code> เป็น private (ยังมีเอกสารต้นฉบับในประวัติ ห้ามเปิด public)</li>
+        <li>remote <code>origin</code> ชี้ repo public · <code>private-archive</code> ชี้ repo เก่า ไม่ต้องใช้ในงานประจำ</li>
+      </ul></div>
+  </article>
+</section>
+
+<!-- ───────────── 10 รูปแบบ ───────────── -->
+<section class="sheet" id="p10" data-title="รูปแบบ prompt" hidden>
+  <div class="head">
+    <div class="num">10</div>
+    <div><div class="eyebrow">สรุป · นำไปใช้กับหลักสูตรถัดไป</div><h2>รูปแบบ prompt ที่ได้ผล และ prompt แม่แบบ</h2></div>
+  </div>
+  <div class="cols">
+    <div style="display:grid;gap:12px;align-content:start">
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>รูปแบบ</th><th>ตัวอย่างจากแชท</th><th>ได้อะไร</th></tr></thead>
+        <tbody>
+          <tr><td>ต้นทาง + ปลายทาง</td><td>#01 · #04</td><td>โครงโฟลเดอร์ชัดตั้งแต่ต้น</td></tr>
+          <tr><td>"ก่อนที่จะ…"</td><td>#05</td><td>ข้อกำหนดและเกณฑ์ตรวจรับมาก่อนโค้ด</td></tr>
+          <tr><td>อ้างแผนที่มีอยู่</td><td>#08 "ตาม tutorial ขั้นที่ 1"</td><td>ไม่ต้องอธิบายงานซ้ำ</td></tr>
+          <tr><td>ลิงก์ตัวอย่าง</td><td>#13 · #16</td><td>หน้าตาตรงใจในรอบเดียว</td></tr>
+          <tr><td>กำหนดขอบเขตข้อมูล</td><td>#16 "เท่าที่เชื่อมโยงได้"</td><td>ไม่แต่งเส้นที่ไม่มีหลักฐาน</td></tr>
+          <tr><td>คำเดียวคุมจังหวะ</td><td>#11 · #12 · #18</td><td>ทำต่อ หยุด เปลี่ยนรูปแบบผลลัพธ์</td></tr>
+          <tr><td>ส่งต่อคิว</td><td>8 จาก 20 คำสั่ง</td><td>ไม่ต้องรอ AI ทำเสร็จก่อน</td></tr>
+          <tr><td>คำสั่งที่ย้อนกลับไม่ได้</td><td>#19</td><td>AI ถามก่อน ผู้ใช้เป็นผู้ตัดสิน</td></tr>
+        </tbody>
+      </table></div>
+      <div class="lesson"><b>สิ่งที่ prompt ไม่ต้องบอก แต่ต้องตรวจ:</b> AI รายงานทุกรอบว่าตรวจอะไรแล้วและอะไรยังไม่ได้ตรวจ ผู้ใช้ควรอ่านส่วน "ยังไม่ได้ทำ" ก่อนสั่งงานถัดไป</div>
+    </div>
+    <div style="display:grid;gap:8px;align-content:start">
+      <p class="label">prompt แม่แบบ · ปรับชื่อหลักสูตรและลิงก์</p>
+<pre class="tpl">1. ดาวน์โหลด &lt;ลิงก์โฟลเดอร์เอกสาร&gt; ลงโฟลเดอร์ doc_ref
+   แล้วอ่านทุกไฟล์ บันทึกรายหมวดลง doc_notes/
+2. clone template &lt;ลิงก์ repo&gt; สร้างโฟลเดอร์ &lt;XX&gt;_web
+   เป็นทั้ง Obsidian vault และเว็บ
+3. ก่อนทำเว็บ สร้าง checklist ข้อมูลหลักสูตร ทะเบียน
+   ข้อสังเกต (P0–P2) และ SRS ที่ทุกข้อทดสอบได้
+4. เขียนตัวดึงข้อมูลจาก .docx เป็น curriculum.json
+   แหล่งเดียว แล้วสร้างโน้ตวอลต์และเว็บจากไฟล์นั้น
+   ห้ามพิมพ์ข้อมูลหลักสูตรลงโค้ดด้วยมือ
+5. ข้อมูลที่เล่มขาด ให้แสดงป้ายเตือนพร้อมรหัสข้อสังเกต
+6. ตรวจทุกหน้าในเบราว์เซอร์ ทุกวิชาเอก และจอ 360px
+7. push ขึ้น repo แบบ private โดยไม่รวม doc_ref</pre>
+      <div class="prompt"><span class="who">#21 · 16:14 · คำสั่งที่สร้างเอกสารนี้</span><q>จาก chat นี้ สกัด prompt แต่ละขั้นตอนออกมาพร้อมผลลัพธ์ ทำเป็น info และ pdf เหมือนเดิม</q></div>
+    </div>
+  </div>
+</section>
+
+<nav class="nav" aria-label="เลื่อนหน้า">
+  <button type="button" id="prev">← ก่อนหน้า</button>
+  <span class="pos" id="pos">1 / 10</span>
+  <button type="button" id="next" class="primary">ถัดไป →</button>
+</nav>
+
+<script>
+(() => {
+  const pages = [...document.querySelectorAll(".sheet")];
+  const list = document.getElementById("tablist");
+  const prev = document.getElementById("prev"), next = document.getElementById("next"), pos = document.getElementById("pos");
+  const tabs = pages.map((p, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "tab"; b.setAttribute("role", "tab");
+    b.id = "tab-" + p.id; b.setAttribute("aria-controls", p.id);
+    b.textContent = String(i + 1).padStart(2, "0") + " " + p.dataset.title;
+    b.addEventListener("click", () => go(i, true));
+    list.appendChild(b);
+    p.setAttribute("role", "tabpanel"); p.setAttribute("aria-labelledby", b.id);
+    return b;
+  });
+  let cur = 0;
+  function go(i, push) {
+    cur = Math.max(0, Math.min(pages.length - 1, i));
+    pages.forEach((p, k) => { p.hidden = k !== cur; });
+    tabs.forEach((t, k) => t.setAttribute("aria-selected", k === cur ? "true" : "false"));
+    tabs[cur].scrollIntoView({ block: "nearest", inline: "nearest" });
+    pos.textContent = (cur + 1) + " / " + pages.length;
+    prev.disabled = cur === 0; next.disabled = cur === pages.length - 1;
+    if (push && location.hash !== "#" + pages[cur].id) location.hash = pages[cur].id;
+    if (push) window.scrollTo({ top: 0 });
+  }
+  const fromHash = () => { const k = pages.findIndex(p => "#" + p.id === location.hash); return k < 0 ? 0 : k; };
+  prev.addEventListener("click", () => go(cur - 1, true));
+  next.addEventListener("click", () => go(cur + 1, true));
+  window.addEventListener("hashchange", () => go(fromHash(), false));
+  document.addEventListener("keydown", e => {
+    if (e.target.closest && e.target.closest("input,textarea")) return;
+    if (e.key === "ArrowRight") go(cur + 1, true);
+    if (e.key === "ArrowLeft") go(cur - 1, true);
+  });
+  go(fromHash(), false);
+})();
+</script>
